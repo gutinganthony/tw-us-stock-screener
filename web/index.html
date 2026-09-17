@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>台美股三策略篩選器</title>
+  <style>
+    :root {
+      --ink: #152c28;
+      --muted: #6c7975;
+      --paper: #f7f6f0;
+      --card: rgba(255,255,255,.88);
+      --line: #dfe3dc;
+      --green: #0b6d57;
+      --green-dark: #084d3f;
+      --green-soft: #dcefe8;
+      --amber: #b76716;
+      --amber-soft: #fff0d9;
+      --red: #b74236;
+      --red-soft: #fbe7e3;
+      --blue: #2d5c85;
+      --shadow: 0 18px 50px rgba(31, 61, 53, .09);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background:
+      radial-gradient(circle at 12% -6%, rgba(35,135,105,.14), transparent 31rem),
+      radial-gradient(circle at 88% 2%, rgba(227,154,74,.13), transparent 28rem), var(--paper); }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .shell { max-width: 1500px; margin: 0 auto; padding: 28px 28px 52px; }
+    header { display: flex; justify-content: space-between; gap: 28px; align-items: flex-start; margin-bottom: 22px; }
+    .brand { display: flex; gap: 14px; align-items: center; }
+    .mark { width: 48px; height: 48px; border-radius: 15px; background: var(--ink); color: white; display: grid; place-items: center; box-shadow: var(--shadow); }
+    .mark svg { width: 27px; height: 27px; }
+    h1 { margin: 0; font-family: Georgia, "Noto Serif TC", serif; font-size: clamp(1.8rem, 3vw, 2.65rem); letter-spacing: -.035em; }
+    .tagline { margin: 5px 0 0; color: var(--muted); font-size: .95rem; }
+    .research-pill { border: 1px solid var(--line); background: rgba(255,255,255,.66); color: var(--muted); padding: 8px 11px; border-radius: 999px; font-size: .78rem; white-space: nowrap; }
+    .workspace { display: grid; grid-template-columns: 365px minmax(0,1fr); gap: 20px; align-items: start; }
+    .panel { background: var(--card); border: 1px solid rgba(207,216,208,.82); border-radius: 22px; box-shadow: var(--shadow); backdrop-filter: blur(14px); }
+    aside { padding: 19px; position: sticky; top: 18px; max-height: calc(100vh - 36px); overflow: auto; }
+    .section-label { color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-size: .69rem; font-weight: 800; margin: 2px 0 8px; }
+    .segmented { display: grid; grid-template-columns: repeat(2,1fr); background: #eff1eb; border-radius: 12px; padding: 4px; margin-bottom: 16px; }
+    .segment { border: 0; background: transparent; color: var(--muted); border-radius: 9px; padding: 9px; font-weight: 700; }
+    .segment.active { color: var(--green-dark); background: white; box-shadow: 0 3px 12px rgba(39,70,62,.08); }
+    .strategy-list { display: grid; gap: 8px; margin-bottom: 17px; }
+    .strategy { width: 100%; border: 1px solid var(--line); background: white; border-radius: 13px; padding: 11px 12px; text-align: left; color: var(--ink); display: grid; grid-template-columns: 31px 1fr; gap: 9px; align-items: center; }
+    .strategy strong { display: block; font-size: .9rem; }
+    .strategy small { display: block; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+    .strategy .num { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 9px; background: #eff3ee; color: var(--muted); font-weight: 800; }
+    .strategy.active { border-color: var(--green); background: var(--green-soft); }
+    .strategy.active .num { background: var(--green); color: white; }
+    label.field { display: grid; gap: 6px; font-size: .79rem; color: var(--muted); margin-bottom: 10px; }
+    input, select, textarea { width: 100%; color: var(--ink); border: 1px solid var(--line); background: white; border-radius: 10px; padding: 9px 10px; outline: none; }
+    input:focus, select:focus, textarea:focus, button:focus-visible { border-color: var(--green); box-shadow: 0 0 0 3px rgba(11,109,87,.12); outline: none; }
+    textarea { resize: vertical; min-height: 84px; line-height: 1.5; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; }
+    .custom-box { display: none; }
+    .custom-box.visible { display: block; }
+    details { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 12px 0; padding: 10px 0; }
+    summary { cursor: pointer; font-weight: 750; font-size: .83rem; }
+    .params { padding-top: 11px; }
+    .param-note { color: var(--muted); font-size: .72rem; line-height: 1.45; margin: 0 0 9px; }
+    .toggle-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 10px 0 15px; color: var(--muted); font-size: .8rem; }
+    .switch { position: relative; width: 43px; height: 24px; flex: none; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; border-radius: 99px; background: #cbd1ca; transition: .2s; }
+    .slider:before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; border-radius: 50%; background: white; transition: .2s; box-shadow: 0 2px 5px #0002; }
+    .switch input:checked + .slider { background: var(--green); }
+    .switch input:checked + .slider:before { transform: translateX(19px); }
+    .run { width: 100%; border: 0; color: white; background: var(--green); border-radius: 13px; padding: 12px 14px; font-weight: 800; box-shadow: 0 10px 24px rgba(11,109,87,.2); }
+    .run:hover { background: var(--green-dark); }
+    .run:disabled { cursor: wait; opacity: .7; }
+    main { min-width: 0; }
+    .empty { min-height: 620px; display: grid; place-items: center; padding: 40px; text-align: center; }
+    .empty-icon { width: 78px; height: 78px; border-radius: 24px; margin: 0 auto 18px; background: var(--green-soft); color: var(--green); display: grid; place-items: center; }
+    .empty-icon svg { width: 43px; height: 43px; }
+    .empty h2 { font-family: Georgia, "Noto Serif TC", serif; margin: 0 0 8px; font-size: 1.55rem; }
+    .empty p { color: var(--muted); margin: 0; max-width: 460px; line-height: 1.65; }
+    .loading-steps { text-align: left; display: inline-grid; gap: 9px; margin-top: 21px; color: var(--muted); font-size: .82rem; }
+    .loading-steps span::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 9px; border-radius: 50%; background: #c5cbc5; }
+    .loading-steps span.active::before { background: var(--green); box-shadow: 0 0 0 5px var(--green-soft); animation: pulse 1s infinite; }
+    @keyframes pulse { 50% { transform: scale(.7); } }
+    .results { display: none; gap: 14px; }
+    .results.visible { display: grid; }
+    .summary-strip { display: grid; grid-template-columns: 1.5fr repeat(4,1fr); gap: 10px; }
+    .summary-card { padding: 15px 16px; min-height: 94px; }
+    .summary-card.primary { background: var(--ink); color: white; }
+    .summary-card .eyebrow { font-size: .7rem; text-transform: uppercase; letter-spacing: .09em; opacity: .65; }
+    .summary-card .value { font-size: 1.45rem; font-weight: 820; margin-top: 7px; white-space: nowrap; }
+    .summary-card .sub { font-size: .72rem; opacity: .66; margin-top: 3px; }
+    .warning-stack { display: grid; gap: 7px; }
+    .notice { display: flex; gap: 9px; align-items: flex-start; border-radius: 12px; padding: 10px 12px; background: var(--amber-soft); color: #744817; font-size: .78rem; line-height: 1.45; border: 1px solid #f2d8b3; }
+    .notice::before { content: "!"; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--amber); color: white; font-size: .68rem; font-weight: 900; flex: none; }
+    .table-card { overflow: hidden; }
+    .toolbar { padding: 14px 16px; display: flex; justify-content: space-between; gap: 12px; align-items: center; border-bottom: 1px solid var(--line); }
+    .toolbar h2 { margin: 0; font-size: 1rem; }
+    .toolbar-left { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .filter-pills { display: flex; gap: 5px; }
+    .filter-pill, .ghost { border: 1px solid var(--line); color: var(--muted); background: white; border-radius: 9px; padding: 6px 9px; font-size: .74rem; font-weight: 700; }
+    .filter-pill.active { border-color: var(--green); color: var(--green); background: var(--green-soft); }
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 1050px; }
+    th { text-align: left; color: var(--muted); font-size: .67rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 800; padding: 10px 12px; background: #f7f8f4; position: sticky; top: 0; z-index: 1; }
+    td { padding: 12px; border-top: 1px solid #ecefe9; vertical-align: middle; font-size: .8rem; }
+    tbody tr.stock-row { cursor: pointer; transition: background .15s; }
+    tbody tr.stock-row:hover { background: #f8faf7; }
+    .stock { display: flex; align-items: center; gap: 9px; }
+    .ticker-badge { min-width: 37px; height: 37px; padding: 0 7px; display: grid; place-items: center; border-radius: 10px; background: #edf1ec; color: var(--green-dark); font-weight: 850; font-size: .72rem; }
+    .stock strong { display: block; font-size: .82rem; }
+    .stock small { display: block; color: var(--muted); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+    .status { display: inline-flex; align-items: center; gap: 6px; border-radius: 99px; padding: 5px 8px; font-size: .7rem; font-weight: 780; background: #eff2ee; color: var(--muted); white-space: nowrap; }
+    .status.match { background: var(--green-soft); color: var(--green-dark); }
+    .status.risk { background: var(--red-soft); color: var(--red); }
+    .status.near { background: var(--amber-soft); color: var(--amber); }
+    .score { display: flex; align-items: center; gap: 8px; }
+    .scorebar { width: 54px; height: 5px; background: #e5e9e3; border-radius: 99px; overflow: hidden; }
+    .scorebar i { height: 100%; display: block; background: var(--green); border-radius: 99px; }
+    .number-pos { color: var(--red); font-weight: 700; }
+    .number-neg { color: var(--green); font-weight: 700; }
+    .spark { width: 88px; height: 30px; display: block; }
+    .detail-row { display: none; }
+    .detail-row.open { display: table-row; }
+    .detail-row td { background: #f6f8f4; padding: 0; }
+    .detail-grid { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 16px; padding: 17px 22px 19px 70px; }
+    .detail-grid h3 { margin: 0 0 9px; font-size: .77rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+    .checklist { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; }
+    .check { display: flex; gap: 7px; align-items: flex-start; font-size: .76rem; line-height: 1.35; }
+    .check b { display: grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; background: var(--red-soft); color: var(--red); flex: none; font-size: .65rem; }
+    .check.pass b { background: var(--green-soft); color: var(--green); }
+    .metrics { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; }
+    .metric { padding: 8px 9px; border-radius: 9px; background: white; border: 1px solid var(--line); }
+    .metric small { display: block; color: var(--muted); font-size: .65rem; }
+    .metric strong { display: block; margin-top: 3px; font-size: .81rem; }
+    .method { padding: 17px 19px; }
+    .method-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .method h2 { margin: 0; font-size: .96rem; }
+    .method-grid { margin-top: 13px; display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    .method-item { border-left: 3px solid var(--green-soft); padding-left: 10px; }
+    .method-item strong { font-size: .76rem; }
+    .method-item p { margin: 4px 0 0; color: var(--muted); font-size: .7rem; line-height: 1.5; }
+    .error-box { color: var(--red); background: var(--red-soft); border: 1px solid #ecc9c2; padding: 14px; border-radius: 12px; }
+    .no-results { padding: 60px 20px; text-align: center; color: var(--muted); }
+    .footnote { text-align: center; color: var(--muted); font-size: .68rem; margin-top: 17px; }
+    @media (max-width: 1020px) {
+      .workspace { grid-template-columns: 1fr; }
+      aside { position: static; max-height: none; }
+      .summary-strip { grid-template-columns: repeat(2,1fr); }
+      .summary-card.primary { grid-column: 1 / -1; }
+      .detail-grid { grid-template-columns: 1fr; padding-left: 22px; }
+      .method-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 620px) {
+      .shell { padding: 18px 13px 36px; }
+      header { display: block; }
+      .research-pill { display: inline-block; margin-top: 12px; }
+      .summary-strip { grid-template-columns: 1fr 1fr; }
+      .toolbar { align-items: flex-start; }
+      .toolbar, .toolbar-left { flex-direction: column; }
+      .ghost { width: 100%; }
+      .checklist { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="brand">
+        <div class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 18l5-5 3 3 7-9"/><path d="M14 7h4v4"/><path d="M4 21h16"/></svg>
+        </div>
+        <div>
+          <h1>台美股三策略篩選器</h1>
+          <p class="tagline">把口語交易條件轉成可檢查、可調整、可追溯的訊號。</p>
+        </div>
+      </div>
+      <span class="research-pill">研究工具 · 非投資建議</span>
+    </header>
+
+    <div class="workspace">
+      <aside class="panel" aria-label="篩選設定">
+        <div class="section-label">市場</div>
+        <div class="segmented" id="marketTabs">
+          <button class="segment active" data-market="TW">台股</button>
+          <button class="segment" data-market="US">美股</button>
+        </div>
+
+        <div class="section-label">策略</div>
+        <div class="strategy-list" id="strategyList">
+          <button class="strategy active" data-strategy="washout"><span class="num">1</span><span><strong>主力拉盤前期</strong><small>洗盤、守均線、縮量與出貨風險</small></span></button>
+          <button class="strategy" data-strategy="overnight"><span class="num">2</span><span><strong>隔日沖</strong><small>漲幅、量比、換手、型態與 VWAP</small></span></button>
+          <button class="strategy" data-strategy="pre_surge"><span class="num">3</span><span><strong>大漲前四特徵</strong><small>急漲、連陽、跳空與持續放量</small></span></button>
+        </div>
+
+        <div class="section-label">股票範圍</div>
+        <div class="segmented" id="universeTabs">
+          <button class="segment active" data-universe="market">廣域候選</button>
+          <button class="segment" data-universe="custom">自訂清單</button>
+        </div>
+        <div class="custom-box" id="customBox">
+          <label class="field">股票代碼（逗號或換行分隔）
+            <textarea id="tickers" placeholder="台股：2330, 2454&#10;美股：AAPL, NVDA"></textarea>
+          </label>
+        </div>
+        <div class="grid-2">
+          <label class="field">初篩數量
+            <select id="universeLimit"><option>100</option><option selected>200</option><option>400</option><option>800</option><option>1000</option></select>
+          </label>
+          <label class="field">顯示上限
+            <select id="detailLimit"><option>30</option><option selected>60</option><option>100</option><option>200</option></select>
+          </label>
+        </div>
+
+        <details>
+          <summary>進階條件</summary>
+          <div class="params" id="params"></div>
+        </details>
+
+        <div class="toggle-line" id="intradayLine">
+          <span>檢查 5 分鐘 VWAP 與相對大盤</span>
+          <label class="switch"><input type="checkbox" id="useIntraday" checked><span class="slider"></span></label>
+        </div>
+
+        <button class="run" id="runButton">開始篩選</button>
+      </aside>
+
+      <main>
+        <section class="panel empty" id="emptyState">
+          <div>
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5h16M7 12h10M10 19h4"/><circle cx="5" cy="5" r="1" fill="currentColor"/><circle cx="8" cy="12" r="1" fill="currentColor"/><circle cx="11" cy="19" r="1" fill="currentColor"/></svg>
+            </div>
+            <h2>先選市場與策略</h2>
+            <p>系統會先做廣域候選初篩，再下載歷史日線；隔日沖另會檢查最新 5 分鐘線。每檔股票都會列出通過與未通過的條件。</p>
+          </div>
+        </section>
+
+        <section class="results" id="results">
+          <div class="summary-strip" id="summaryStrip"></div>
+          <div class="warning-stack" id="warnings"></div>
+          <div class="panel table-card">
+            <div class="toolbar">
+              <div class="toolbar-left">
+                <h2 id="resultTitle">篩選結果</h2>
+                <div class="filter-pills">
+                  <button class="filter-pill active" data-filter="all">全部</button>
+                  <button class="filter-pill" data-filter="matched">符合／有訊號</button>
+                </div>
+              </div>
+              <button class="ghost" id="exportButton">匯出 CSV</button>
+            </div>
+            <div class="table-wrap" id="tableWrap"></div>
+          </div>
+          <section class="panel method" id="method"></section>
+        </section>
+        <div class="footnote">訊號是研究用規則輸出，不代表報酬保證；下單前仍需確認公告、流動性、交易成本與風險。</div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const state = { market: 'TW', strategy: 'washout', universe: 'market', result: null, filter: 'all' };
+    const paramSchemas = {
+      washout: [
+        ['ma_days','關鍵均線（日）','select',[20,30],30],
+        ['wash_lookback_days','洗盤觀察上限（交易日）','number',null,63],
+        ['ma_tolerance_pct','均線容忍幅度（%）','number',null,1],
+        ['contraction_ratio','近 5 日／前 20 日量能上限','number',null,.65],
+        ['cumulative_turnover_max','20 日累積換手上限（%）','number',null,30],
+        ['benchmark_floor_pct','大盤 20 日報酬下限（%）','number',null,-5],
+        ['distribution_volume_ratio','出貨風險量比門檻','number',null,1.3],
+        ['reexpansion_ratio','拉盤前量能再擴張門檻','number',null,1]
+      ],
+      overnight: [
+        ['change_min','漲幅下限（%）','number',null,3], ['change_max','漲幅上限（%）','number',null,5],
+        ['volume_ratio_min','量比下限','number',null,1], ['turnover_min','換手率下限（%）','number',null,5],
+        ['turnover_max','換手率上限（%）','number',null,10], ['cap_min_b','市值下限（十億）','number',null,20],
+        ['cap_max_b','市值上限（十億）','number',null,100], ['volume_cv_max','近 5 日量能波動上限','number',null,.8],
+        ['near_high_pct','距 60 日高點最多（%）','number',null,5], ['above_vwap_ratio_min','站上 VWAP 時間比例','number',null,.8],
+        ['tail_pullback_max_pct','尾盤距高點回踩上限（%）','number',null,2.5]
+      ],
+      pre_surge: [
+        ['surge_threshold','單日大漲門檻（%）','number',null,9.5], ['up_streak_min','最少連漲天數','number',null,4],
+        ['volume_recent_days','觀察放量天數','number',null,5], ['volume_expand_days','至少符合放量天數','number',null,2],
+        ['volume_expand_min','放量倍數下限','number',null,1], ['volume_expand_max','放量倍數上限','number',null,2],
+        ['features_required','至少符合幾項','select',[2,3,4],3]
+      ]
+    };
+
+    const $ = selector => document.querySelector(selector);
+    const $$ = selector => [...document.querySelectorAll(selector)];
+    const nf = new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 2 });
+
+    function renderParams() {
+      const schema = paramSchemas[state.strategy];
+      const capDefaults = state.market === 'TW' ? [20,100] : [1,10];
+      $('#params').innerHTML = `<p class="param-note">所有門檻都可調。變更市場時，市值單位會自動切換為 ${state.market === 'TW' ? '新台幣' : '美元'}十億。</p><div class="grid-2">` + schema.map(([key,label,type,options,initial]) => {
+        if (key === 'cap_min_b') initial = capDefaults[0];
+        if (key === 'cap_max_b') initial = capDefaults[1];
+        if (key === 'surge_threshold') initial = state.market === 'TW' ? 9.5 : 10;
+        if (type === 'select') return `<label class="field">${label}<select data-param="${key}">${options.map(v => `<option ${v===initial?'selected':''}>${v}</option>`).join('')}</select></label>`;
+        return `<label class="field">${label}<input data-param="${key}" type="number" step="any" value="${initial}"></label>`;
+      }).join('') + '</div>';
+      $('#intradayLine').style.display = state.strategy === 'overnight' ? 'flex' : 'none';
+    }
+
+    function collectParams() {
+      const params = {};
+      $$('[data-param]').forEach(input => params[input.dataset.param] = Number(input.value));
+      if ('cap_min_b' in params) { params.cap_min = params.cap_min_b * 1e9; delete params.cap_min_b; }
+      if ('cap_max_b' in params) { params.cap_max = params.cap_max_b * 1e9; delete params.cap_max_b; }
+      return params;
+    }
+
+    $$('#marketTabs .segment').forEach(button => button.addEventListener('click', () => {
+      state.market = button.dataset.market;
+      $$('#marketTabs .segment').forEach(b => b.classList.toggle('active', b === button));
+      renderParams();
+    }));
+    $$('#strategyList .strategy').forEach(button => button.addEventListener('click', () => {
+      state.strategy = button.dataset.strategy;
+      $$('#strategyList .strategy').forEach(b => b.classList.toggle('active', b === button));
+      renderParams();
+    }));
+    $$('#universeTabs .segment').forEach(button => button.addEventListener('click', () => {
+      state.universe = button.dataset.universe;
+      $$('#universeTabs .segment').forEach(b => b.classList.toggle('active', b === button));
+      $('#customBox').classList.toggle('visible', state.universe === 'custom');
+    }));
+
+    function loadingView() {
+      $('#results').classList.remove('visible');
+      $('#emptyState').style.display = 'grid';
+      $('#emptyState').innerHTML = `<div><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></div><h2>正在取得真實行情</h2><p>廣域篩選通常約需 10–40 秒；候選數量與網路狀況會影響時間。</p><div class="loading-steps"><span class="active">市場候選與股本快照</span><span>6 個月日線與大盤基準</span><span>${state.strategy === 'overnight' ? '5 分鐘 VWAP 與相對強弱' : '逐檔規則計算與排序'}</span></div></div>`;
+    }
+
+    $('#runButton').addEventListener('click', async () => {
+      const button = $('#runButton');
+      button.disabled = true; button.textContent = '篩選中…'; loadingView();
+      try {
+        const response = await fetch('/api/screen', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({
+          market: state.market, strategy: state.strategy, universe_mode: state.universe,
+          tickers: $('#tickers').value, universe_limit: Number($('#universeLimit').value),
+          detail_limit: Number($('#detailLimit').value), use_intraday: $('#useIntraday').checked,
+          params: collectParams()
+        })});
+        const data = await response.json();
+        if (!response.ok || !data.ok) throw new Error(data.error || '無法完成篩選');
+        state.result = data; state.filter = 'all'; renderResult();
+      } catch (error) {
+        $('#emptyState').innerHTML = `<div class="error-box"><strong>無法完成篩選</strong><br>${escapeHtml(error.message)}<br><small>請確認網路連線後再試一次。</small></div>`;
+      } finally {
+        button.disabled = false; button.textContent = '開始篩選';
+      }
+    });
+
+    function renderResult() {
+      const data = state.result;
+      $('#emptyState').style.display = 'none'; $('#results').classList.add('visible');
+      const bench = data.benchmark_return_20d;
+      $('#summaryStrip').innerHTML = `
+        <div class="panel summary-card primary"><div class="eyebrow">${data.market_label} · ${data.strategy_label}</div><div class="value">${data.matched_count} 檔有訊號</div><div class="sub">${data.cache_hit ? '快取結果 · ' : ''}${formatTime(data.generated_at)} · ${data.elapsed_seconds} 秒完成</div></div>
+        <div class="panel summary-card"><div class="eyebrow">候選池</div><div class="value">${data.universe_count}</div><div class="sub">${data.universe_mode === 'market' ? '廣域初篩' : '自訂代碼'}</div></div>
+        <div class="panel summary-card"><div class="eyebrow">成功分析</div><div class="value">${data.analyzed_count}</div><div class="sub">至少 70 根日線</div></div>
+        <div class="panel summary-card"><div class="eyebrow">大盤 20 日</div><div class="value ${bench >= 0 ? 'number-pos':'number-neg'}">${bench == null ? '—' : signed(bench) + '%'}</div><div class="sub">${data.benchmark}</div></div>
+        <div class="panel summary-card"><div class="eyebrow">行情狀態</div><div class="value">${data.daily_bar_partial ? '盤中' : '收盤'}</div><div class="sub">量價可能${data.daily_bar_partial ? '仍變動' : '已定案'}</div></div>`;
+      $('#warnings').innerHTML = (data.warnings || []).map(w => `<div class="notice">${escapeHtml(w)}</div>`).join('');
+      $('#resultTitle').textContent = `${data.strategy_label} · 前 ${data.displayed_count} 檔`;
+      $$('.filter-pill').forEach(p => p.classList.toggle('active', p.dataset.filter === 'all'));
+      renderTable(); renderMethod();
+    }
+
+    function statusClass(row) {
+      if (String(row.classification).includes('出貨')) return 'risk';
+      if (row.matched) return 'match';
+      if (row.score >= 60) return 'near';
+      return '';
+    }
+
+    function renderTable() {
+      const data = state.result;
+      const rows = data.rows.filter(row => state.filter === 'all' || row.matched);
+      if (!rows.length) { $('#tableWrap').innerHTML = '<div class="no-results">這個檢視沒有股票。可切回「全部」，或放寬進階條件。</div>'; return; }
+      $('#tableWrap').innerHTML = `<table><thead><tr><th>#</th><th>股票</th><th>判定</th><th>符合度</th><th>當日漲幅</th><th>量比</th><th>換手率</th><th>市值</th><th>收盤價</th><th>近 30 日</th></tr></thead><tbody>` + rows.map((row,index) => `
+        <tr class="stock-row" data-row="${index}"><td>${index+1}</td><td><div class="stock"><span class="ticker-badge">${escapeHtml(shortTicker(row.symbol))}</span><span><strong>${escapeHtml(row.symbol)}</strong><small>${escapeHtml(row.name)}</small></span></div></td><td><span class="status ${statusClass(row)}">${escapeHtml(row.classification)}</span></td><td><div class="score"><strong>${row.score}</strong><span class="scorebar"><i style="width:${row.score}%"></i></span></div></td><td class="${row.day_change_pct >= 0 ? 'number-pos':'number-neg'}">${signed(row.day_change_pct)}%</td><td>${fmt(row.volume_ratio)}×</td><td>${row.turnover_pct == null ? '—' : fmt(row.turnover_pct) + '%'}</td><td>${formatCap(row.market_cap, data.currency)}</td><td>${formatPrice(row.close)}</td><td>${sparkline(row.sparkline, row.day_change_pct >= 0)}</td></tr>
+        <tr class="detail-row" data-detail="${index}"><td colspan="10">${detailHtml(row, data.currency)}</td></tr>`).join('') + '</tbody></table>';
+      $$('.stock-row').forEach(row => row.addEventListener('click', () => {
+        const detail = document.querySelector(`[data-detail="${row.dataset.row}"]`); detail.classList.toggle('open');
+      }));
+    }
+
+    function detailHtml(row, currency) {
+      const checks = (row.checks || []).map(([label,pass]) => `<div class="check ${pass?'pass':''}"><b>${pass?'✓':'×'}</b><span>${escapeHtml(label)}</span></div>`).join('');
+      const intra = row.intraday || {};
+      return `<div class="detail-grid"><div><h3>條件明細</h3><div class="checklist">${checks}</div></div>
+        <div><h3>量價結構</h3><div class="metrics"><div class="metric"><small>MA20 / MA30</small><strong>${fmt(row.ma20)} / ${fmt(row.ma30)}</strong></div><div class="metric"><small>距 60 日高點</small><strong>${signed(row.near_60d_high_pct)}%</strong></div><div class="metric"><small>近 5 日量能比</small><strong>${fmt(row.recent5_vs_prior20_volume)}×</strong></div><div class="metric"><small>20 日累積換手</small><strong>${row.cumulative_turnover_20d == null ? '—':fmt(row.cumulative_turnover_20d)+'%'}</strong></div></div></div>
+        <div><h3>${intra.available ? '盤中驗證':'補充資訊'}</h3><div class="metrics"><div class="metric"><small>資料日期</small><strong>${escapeHtml(row.as_of)}</strong></div><div class="metric"><small>市值</small><strong>${formatCap(row.market_cap,currency)}</strong></div><div class="metric"><small>站上 VWAP 比例</small><strong>${intra.available ? fmt(intra.above_vwap_ratio*100)+'%' : '未檢查'}</strong></div><div class="metric"><small>相對大盤</small><strong>${intra.available ? signed(intra.relative_strength_pct)+'%' : '—'}</strong></div></div></div></div>`;
+    }
+
+    function renderMethod() {
+      const data = state.result;
+      const sources = (data.sources || []).filter(s => s.used);
+      $('#method').innerHTML = `<div class="method-head"><h2>資料與判定邊界</h2><span class="status">參數可在左側調整</span></div><div class="method-grid">
+        ${sources.map(s => `<div class="method-item"><strong>${escapeHtml(s.name)}</strong><p>${escapeHtml(s.role)}</p></div>`).join('')}
+        <div class="method-item"><strong>不直接判斷的項目</strong><p>主力真實持股比例與委託簿大單需要額外籌碼／Level 2 來源；目前結果只稱為代理訊號。</p></div>
+        <div class="method-item"><strong>市場差異</strong><p>${data.market === 'US' ? '美股用單日大漲門檻代替台股式漲停。' : '台股漲停特徵預設以單日上漲 9.5% 以上近似。'}</p></div>
+        <div class="method-item"><strong>公開版保護</strong><p>相同條件短期快取，並限制同時昂貴查詢與單一來源的請求頻率。</p></div>
+      </div>`;
+    }
+
+    $$('.filter-pill').forEach(pill => pill.addEventListener('click', () => {
+      state.filter = pill.dataset.filter; $$('.filter-pill').forEach(p => p.classList.toggle('active', p === pill)); renderTable();
+    }));
+
+    $('#exportButton').addEventListener('click', () => {
+      if (!state.result) return;
+      const fields = ['symbol','name','classification','score','day_change_pct','volume_ratio','turnover_pct','market_cap','close','as_of'];
+      const rows = state.result.rows.filter(row => state.filter === 'all' || row.matched);
+      const csv = '\ufeff' + [fields.join(','), ...rows.map(row => fields.map(field => csvCell(row[field])).join(','))].join('\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8'}); const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob); link.download = `stock-screen-${state.result.market}-${state.result.strategy}-${state.result.generated_at.slice(0,10)}.csv`; link.click(); URL.revokeObjectURL(link.href);
+    });
+
+    function sparkline(values, positive) {
+      if (!values || values.length < 2) return '—';
+      const min = Math.min(...values), max = Math.max(...values), range = max-min || 1;
+      const pts = values.map((v,i) => `${(i/(values.length-1)*86+1).toFixed(1)},${(27-(v-min)/range*23).toFixed(1)}`).join(' ');
+      return `<svg class="spark" viewBox="0 0 88 30" aria-label="近30日價格趨勢"><polyline points="${pts}" fill="none" stroke="${positive?'#b74236':'#0b6d57'}" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
+    }
+    function fmt(value) { return value == null || !Number.isFinite(Number(value)) ? '—' : nf.format(Number(value)); }
+    function signed(value) { if (value == null) return '—'; const n = Number(value); return `${n>0?'+':''}${nf.format(n)}`; }
+    function shortTicker(symbol) { return String(symbol).replace('.TW','').replace('.TWO','').slice(0,6); }
+    function formatPrice(value) { return Number(value) >= 1000 ? nf.format(value) : Number(value).toLocaleString('zh-TW',{maximumFractionDigits:2}); }
+    function formatCap(value,currency) { if (value == null) return '—'; const b = Number(value)/1e9; return `${currency==='TWD'?'NT$':'US$'}${b>=1000?nf.format(b/1000)+'兆':nf.format(b)+'B'}`; }
+    function formatTime(iso) { try { return new Date(iso).toLocaleString('zh-TW',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); } catch { return iso; } }
+    function csvCell(value) { const text = value == null ? '' : String(value); return `"${text.replaceAll('"','""')}"`; }
+    function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+    renderParams();
+  </script>
+</body>
+</html>
